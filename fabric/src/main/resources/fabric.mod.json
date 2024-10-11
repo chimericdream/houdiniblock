@@ -16,10 +16,10 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "com.chimericdream.houdiniblock.fabric.ExampleModFabric"
+        "com.chimericdream.houdiniblock.fabric.HoudiniBlockFabric"
     ],
     "client": [
-      "com.chimericdream.houdiniblock.fabric.client.ExampleModFabricClient"
+      "com.chimericdream.houdiniblock.fabric.client.HoudiniBlockFabricClient"
     ]
   },
   "mixins": [
