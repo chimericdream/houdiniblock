@@ -1,13 +1,16 @@
 package com.chimericdream.houdiniblock.blocks;
 
+import com.chimericdream.houdiniblock.items.HoudiniBlockItem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Waterloggable;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.Properties;
@@ -46,7 +49,13 @@ public class HoudiniBlock extends Block implements Waterloggable {
 
     @Override
     public BlockState getPlacementState(ItemPlacementContext ctx) {
+        ItemStack stack = ctx.getStack();
+        NbtCompound nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, HoudiniBlockItem.DEFAULT_NBT).copyNbt();
+        HoudiniBlockItem.PlacementMode mode = HoudiniBlockItem.PlacementMode.valueOf(nbt.getString("houdini_placement_mode"));
+
         return this.getDefaultState()
+            .with(PREVENT_ON_PLACE, mode == HoudiniBlockItem.PlacementMode.PREVENT_ON_PLACE)
+            .with(PREVENT_ON_BREAK, mode == HoudiniBlockItem.PlacementMode.PREVENT_ON_BREAK)
             .with(WATERLOGGED, ctx.getWorld().getFluidState(ctx.getBlockPos()).getFluid() == Fluids.WATER);
     }
 

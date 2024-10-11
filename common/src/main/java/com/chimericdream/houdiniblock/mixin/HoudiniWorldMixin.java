@@ -14,29 +14,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(World.class)
 abstract public class HoudiniWorldMixin {
-    /* If I want to do this, it should be a separate block. Otherwise, the two mixins will conflict. */
-    // @Inject(
-    //     method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;II)Z",
-    //     at = @At(
-    //         value = "INVOKE",
-    //         target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/BlockState;"
-    //     ),
-    //     cancellable = true
-    // )
-    // private void houdini$preventUpdatesWhenPlaced(
-    //     BlockPos pos,
-    //     BlockState state,
-    //     int flags,
-    //     int maxUpdateDepth,
-    //     CallbackInfoReturnable<Boolean> cir,
-    //     @Local(ordinal = 0) Block newBlock,
-    //     @Local(ordinal = 1) BlockState previousState
-    // ) {
-    //     if (newBlock instanceof HoudiniBlock && previousState.getBlock() instanceof AirBlock) {
-    //         cir.setReturnValue(false);
-    //     }
-    // }
-
     @Inject(
         method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;II)Z",
         at = @At(
@@ -45,7 +22,7 @@ abstract public class HoudiniWorldMixin {
         ),
         cancellable = true
     )
-    private void houdini$preventUpdatesWhenBroken(
+    private void houdini$preventBlockUpdates(
         BlockPos pos,
         BlockState state,
         int flags,
@@ -58,6 +35,15 @@ abstract public class HoudiniWorldMixin {
             previousState.getBlock() instanceof HoudiniBlock
                 && previousState.get(HoudiniBlock.PREVENT_ON_BREAK)
                 && newBlock instanceof AirBlock
+        ) {
+            cir.setReturnValue(false);
+            return;
+        }
+
+        if (
+            previousState.getBlock() instanceof AirBlock
+                && newBlock instanceof HoudiniBlock
+                && state.get(HoudiniBlock.PREVENT_ON_PLACE)
         ) {
             cir.setReturnValue(false);
         }
