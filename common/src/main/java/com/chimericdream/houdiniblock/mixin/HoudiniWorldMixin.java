@@ -18,7 +18,8 @@ abstract public class HoudiniWorldMixin {
         method = "setBlockState(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;II)Z",
         at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/world/World;getBlockState(Lnet/minecraft/util/math/BlockPos;)Lnet/minecraft/block/BlockState;"
+            target = "Lnet/minecraft/world/World;scheduleBlockRerenderIfNeeded(Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/block/BlockState;Lnet/minecraft/block/BlockState;)V",
+            shift = At.Shift.AFTER
         ),
         cancellable = true
     )
@@ -31,19 +32,26 @@ abstract public class HoudiniWorldMixin {
         @Local(ordinal = 0) Block newBlock,
         @Local(ordinal = 1) BlockState previousState
     ) {
-        if (
+        if ((
             previousState.getBlock() instanceof HoudiniBlock
-                && previousState.get(HoudiniBlock.PREVENT_ON_BREAK)
-                && newBlock instanceof AirBlock
+                && !previousState.get(HoudiniBlock.PREVENT_ON_PLACE) // All states except prevent_on_place should prevent updates
+                && newBlock instanceof AirBlock)
+            || (
+            previousState.getBlock() instanceof HoudiniBlock
+                && previousState.get(HoudiniBlock.REPLACE_BLOCK))
         ) {
             cir.setReturnValue(false);
             return;
         }
 
-        if (
+        if ((
             previousState.getBlock() instanceof AirBlock
                 && newBlock instanceof HoudiniBlock
-                && state.get(HoudiniBlock.PREVENT_ON_PLACE)
+                // All states except prevent_on_break should prevent updates
+                && !state.get(HoudiniBlock.PREVENT_ON_BREAK))
+            || (
+            newBlock instanceof HoudiniBlock
+                && state.get(HoudiniBlock.REPLACE_BLOCK))
         ) {
             cir.setReturnValue(false);
         }

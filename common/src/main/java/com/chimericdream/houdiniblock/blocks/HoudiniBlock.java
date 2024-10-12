@@ -8,23 +8,31 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.fluid.Fluids;
+import net.minecraft.item.BlockItem;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.state.StateManager;
 import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.Properties;
+import net.minecraft.util.Hand;
+import net.minecraft.util.ItemActionResult;
+import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 public class HoudiniBlock extends Block implements Waterloggable {
     public static final BooleanProperty PREVENT_ON_PLACE;
     public static final BooleanProperty PREVENT_ON_BREAK;
+    public static final BooleanProperty PREVENT_ALL;
+    public static final BooleanProperty REPLACE_BLOCK;
     public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
 
     static {
         PREVENT_ON_PLACE = BooleanProperty.of("prevent_on_place");
         PREVENT_ON_BREAK = BooleanProperty.of("prevent_on_break");
+        PREVENT_ALL = BooleanProperty.of("prevent_all");
+        REPLACE_BLOCK = BooleanProperty.of("replace_block");
     }
 
     public HoudiniBlock(Settings settings) {
@@ -35,6 +43,8 @@ public class HoudiniBlock extends Block implements Waterloggable {
                 .getDefaultState()
                 .with(PREVENT_ON_PLACE, false)
                 .with(PREVENT_ON_BREAK, true)
+                .with(PREVENT_ALL, true)
+                .with(REPLACE_BLOCK, true)
                 .with(WATERLOGGED, false)
         );
     }
@@ -43,6 +53,8 @@ public class HoudiniBlock extends Block implements Waterloggable {
         builder.add(
             PREVENT_ON_PLACE,
             PREVENT_ON_BREAK,
+            PREVENT_ALL,
+            REPLACE_BLOCK,
             WATERLOGGED
         );
     }
@@ -56,17 +68,48 @@ public class HoudiniBlock extends Block implements Waterloggable {
         return this.getDefaultState()
             .with(PREVENT_ON_PLACE, mode == HoudiniBlockItem.PlacementMode.PREVENT_ON_PLACE)
             .with(PREVENT_ON_BREAK, mode == HoudiniBlockItem.PlacementMode.PREVENT_ON_BREAK)
+            .with(PREVENT_ALL, mode == HoudiniBlockItem.PlacementMode.PREVENT_ALL)
+            .with(REPLACE_BLOCK, mode == HoudiniBlockItem.PlacementMode.REPLACE_BLOCK)
             .with(WATERLOGGED, ctx.getWorld().getFluidState(ctx.getBlockPos()).getFluid() == Fluids.WATER);
     }
 
     @Override
+    protected ItemActionResult onUseWithItem(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+        if (state.get(REPLACE_BLOCK)) {
+            return this.replaceWithBlockInHand(stack, state, world, pos, player, hand, hit);
+        }
+
+        return ItemActionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    private ItemActionResult replaceWithBlockInHand(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+        if (stack.getItem() instanceof BlockItem blockItem) {
+            Block block = blockItem.getBlock();
+
+            this.spawnBreakParticles(world, player, pos, state);
+            this.spawnHoudiniBlockItem(world, player, pos);
+
+            world.setBlockState(pos, block.getDefaultState());
+
+            return ItemActionResult.SUCCESS;
+        }
+
+        return ItemActionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+    }
+
+    @Override
     public BlockState onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
-        if (!state.get(PREVENT_ON_BREAK)) {
+        if (state.get(PREVENT_ON_PLACE)) {
             return super.onBreak(world, pos, state, player);
         }
 
         this.spawnBreakParticles(world, player, pos, state);
+        this.spawnHoudiniBlockItem(world, player, pos);
 
+        return state;
+    }
+
+    private void spawnHoudiniBlockItem(World world, PlayerEntity player, BlockPos pos) {
         if (!player.isCreative()) {
             ItemEntity itemEntity = new ItemEntity(
                 world,
@@ -80,7 +123,5 @@ public class HoudiniBlock extends Block implements Waterloggable {
 
             world.spawnEntity(itemEntity);
         }
-
-        return state;
     }
 }

@@ -1,23 +1,38 @@
 package com.chimericdream.houdiniblock.items;
 
+import com.chimericdream.lib.text.TextHelpers;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
+import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import java.util.List;
+import java.util.Map;
 
 public class HoudiniBlockItem extends BlockItem {
     public static final NbtComponent DEFAULT_NBT;
+    public static final Map<PlacementMode, String> TOOLTIP_KEYS = Map.of(
+        PlacementMode.PREVENT_ON_BREAK, "item.houdiniblock.tooltip.prevent_on_break",
+        PlacementMode.PREVENT_ON_PLACE, "item.houdiniblock.tooltip.prevent_on_place",
+        PlacementMode.PREVENT_ALL, "item.houdiniblock.tooltip.prevent_all",
+        PlacementMode.REPLACE_BLOCK, "item.houdiniblock.tooltip.replace_block"
+    );
 
     static {
         NbtCompound nbt = new NbtCompound();
@@ -28,6 +43,14 @@ public class HoudiniBlockItem extends BlockItem {
 
     public HoudiniBlockItem(Block block, Item.Settings settings) {
         super(block, settings);
+    }
+
+    @Override
+    public void appendTooltip(ItemStack stack, Item.TooltipContext context, List<Text> tooltip, TooltipType options) {
+        NbtCompound nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, DEFAULT_NBT).copyNbt();
+        PlacementMode currentMode = PlacementMode.valueOf(nbt.getString("houdini_placement_mode"));
+
+        tooltip.add(TextHelpers.getTooltip(TOOLTIP_KEYS.get(currentMode)));
     }
 
     public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
@@ -42,7 +65,8 @@ public class HoudiniBlockItem extends BlockItem {
             PlacementMode currentMode = PlacementMode.valueOf(nbt.getString("houdini_placement_mode"));
             PlacementMode newMode = switch (currentMode) {
                 case PREVENT_ON_BREAK -> PlacementMode.PREVENT_ON_PLACE;
-                case PREVENT_ON_PLACE -> PlacementMode.REPLACE_BLOCK;
+                case PREVENT_ON_PLACE -> PlacementMode.PREVENT_ALL;
+                case PREVENT_ALL -> PlacementMode.REPLACE_BLOCK;
                 case REPLACE_BLOCK -> PlacementMode.PREVENT_ON_BREAK;
             };
 
@@ -50,7 +74,7 @@ public class HoudiniBlockItem extends BlockItem {
             itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
 
             if (!world.isClient()) {
-                player.sendMessage(Text.of(newMode.getMessage()), true);
+                player.sendMessage(Text.translatable(TOOLTIP_KEYS.get(newMode)), true);
             }
 
             return TypedActionResult.pass(player.getStackInHand(hand));
@@ -60,15 +84,37 @@ public class HoudiniBlockItem extends BlockItem {
     }
 
     public ActionResult useOnBlock(ItemUsageContext context) {
-        PlayerEntity player = context.getPlayer();
         ItemStack stack = context.getStack();
         NbtCompound nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, DEFAULT_NBT).copyNbt();
         PlacementMode mode = PlacementMode.valueOf(nbt.getString("houdini_placement_mode"));
 
         if (mode == PlacementMode.REPLACE_BLOCK) {
-            BlockState target = context.getWorld().getBlockState(context.getBlockPos());
+            BlockPos pos = context.getBlockPos();
+            BlockState target = context.getWorld().getBlockState(pos);
 
-            return ActionResult.PASS;
+            if (context.getWorld() instanceof ServerWorld world) {
+                List<ItemStack> stacks = Block.getDroppedStacks(target, world, pos, null);
+
+                for (ItemStack droppedStack : stacks) {
+                    ItemEntity itemEntity = new ItemEntity(
+                        world,
+                        (double) pos.getX() + 0.5D,
+                        (double) pos.getY() + 0.5D,
+                        (double) pos.getZ() + 0.5D,
+                        droppedStack
+                    );
+
+                    itemEntity.setToDefaultPickupDelay();
+
+                    world.spawnEntity(itemEntity);
+                }
+            }
+
+            ItemPlacementContext placementContext = new ItemPlacementContext(context);
+            placementContext.placementPos = pos;
+            placementContext.canReplaceExisting = true;
+
+            return this.place(placementContext);
         }
 
         return super.useOnBlock(context);
@@ -77,14 +123,7 @@ public class HoudiniBlockItem extends BlockItem {
     public enum PlacementMode {
         PREVENT_ON_BREAK,
         PREVENT_ON_PLACE,
+        PREVENT_ALL,
         REPLACE_BLOCK;
-
-        public String getMessage() {
-            return switch (this) {
-                case PREVENT_ON_BREAK -> "Mode: Prevent on break";
-                case PREVENT_ON_PLACE -> "Mode: Prevent on place";
-                case REPLACE_BLOCK -> "Mode: Replace block";
-            };
-        }
     }
 }
