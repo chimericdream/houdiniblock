@@ -25,6 +25,7 @@
     "mixins": [
         "houdiniblock.mixins.json"
     ],
+    "accessWidener": "houdiniblock.accesswidener",
     "depends": {
         "fabricloader": ">=0.16.6",
         "minecraft": "~1.21",
