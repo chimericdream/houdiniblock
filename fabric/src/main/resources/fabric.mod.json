@@ -3,15 +3,15 @@
     "id": "houdiniblock",
     "version": "${version}",
     "name": "Houdini Block",
-    "description": "This is an example description! Tell everyone what your mod is about!",
+    "description": "A magical block that doesn't trigger block updates when broken!",
     "authors": [
-        "Me!"
+        "chimericdream"
     ],
     "contact": {
-        "homepage": "https://fabricmc.net/",
-        "sources": "https://github.com/FabricMC/fabric-example-mod"
+        "homepage": "https://www.curseforge.com/minecraft/mc-mods/houdini-block",
+        "sources": "https://github.com/chimericdream/houdiniblock"
     },
-    "license": "CC0-1.0",
+    "license": "MIT",
     "icon": "assets/houdiniblock/icon.png",
     "environment": "*",
     "entrypoints": {

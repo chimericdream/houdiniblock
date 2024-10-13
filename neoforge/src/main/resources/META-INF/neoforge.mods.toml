@@ -1,15 +1,15 @@
 modLoader = "javafml"
 loaderVersion = "[4,)"
-#issueTrackerURL = ""
-license = "Insert License Here"
+issueTrackerURL = "https://github.com/chimericdream/houdiniblock/issues"
+license = "MIT"
 
 [[mods]]
 modId = "houdiniblock"
 version = "${version}"
 displayName = "Houdini Block"
-authors = "Me!"
+authors = "chimericdream"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+A magical block that doesn't trigger block updates when broken!
 '''
 #logoFile = ""
 
