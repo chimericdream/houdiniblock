@@ -3,6 +3,7 @@ package com.chimericdream.houdiniblock.blocks;
 import com.chimericdream.houdiniblock.items.HoudiniBlockItem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.block.Waterloggable;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.entity.ItemEntity;
@@ -20,6 +21,8 @@ import net.minecraft.util.ItemActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import static com.chimericdream.houdiniblock.items.ModItems.HOUDINI_BLOCK_ITEM;
 
 public class HoudiniBlock extends Block implements Waterloggable {
     public static final BooleanProperty PREVENT_ON_PLACE;
@@ -91,6 +94,10 @@ public class HoudiniBlock extends Block implements Waterloggable {
 
             world.setBlockState(pos, block.getDefaultState());
 
+            if (!player.isCreative()) {
+                stack.decrement(1);
+            }
+
             return ItemActionResult.SUCCESS;
         }
 
@@ -99,12 +106,12 @@ public class HoudiniBlock extends Block implements Waterloggable {
 
     @Override
     public BlockState onBreak(World world, BlockPos pos, BlockState state, PlayerEntity player) {
-        if (state.get(PREVENT_ON_PLACE)) {
-            return super.onBreak(world, pos, state, player);
-        }
-
         this.spawnBreakParticles(world, player, pos, state);
         this.spawnHoudiniBlockItem(world, player, pos);
+
+        if (state.get(WATERLOGGED)) {
+            world.setBlockState(pos, Blocks.WATER.getDefaultState());
+        }
 
         return state;
     }
@@ -116,7 +123,7 @@ public class HoudiniBlock extends Block implements Waterloggable {
                 (double) pos.getX() + 0.5D,
                 (double) pos.getY() + 0.5D,
                 (double) pos.getZ() + 0.5D,
-                new ItemStack(this)
+                HOUDINI_BLOCK_ITEM.get().getDefaultStack()
             );
 
             itemEntity.setToDefaultPickupDelay();

@@ -5,6 +5,7 @@ import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.block.AirBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.FluidBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -35,7 +36,7 @@ abstract public class HoudiniWorldMixin {
         if ((
             previousState.getBlock() instanceof HoudiniBlock
                 && !previousState.get(HoudiniBlock.PREVENT_ON_PLACE) // All states except prevent_on_place should prevent updates
-                && newBlock instanceof AirBlock)
+                && (newBlock instanceof AirBlock || newBlock instanceof FluidBlock))
             || (
             previousState.getBlock() instanceof HoudiniBlock
                 && previousState.get(HoudiniBlock.REPLACE_BLOCK))
@@ -45,7 +46,7 @@ abstract public class HoudiniWorldMixin {
         }
 
         if ((
-            previousState.getBlock() instanceof AirBlock
+            (previousState.getBlock() instanceof AirBlock || previousState.getBlock() instanceof FluidBlock)
                 && newBlock instanceof HoudiniBlock
                 // All states except prevent_on_break should prevent updates
                 && !state.get(HoudiniBlock.PREVENT_ON_BREAK))

@@ -5,7 +5,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
-import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
@@ -70,14 +69,18 @@ public class HoudiniBlockItem extends BlockItem {
                 case REPLACE_BLOCK -> PlacementMode.PREVENT_ON_BREAK;
             };
 
-            nbt.putString("houdini_placement_mode", newMode.toString());
-            itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+            if (newMode == PlacementMode.PREVENT_ON_BREAK) {
+                itemStack.remove(DataComponentTypes.CUSTOM_DATA);
+            } else {
+                nbt.putString("houdini_placement_mode", newMode.toString());
+                itemStack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+            }
 
             if (!world.isClient()) {
                 player.sendMessage(Text.translatable(TOOLTIP_KEYS.get(newMode)), true);
             }
 
-            return TypedActionResult.pass(player.getStackInHand(hand));
+            return TypedActionResult.success(player.getStackInHand(hand));
         } catch (IllegalArgumentException e) {
             return TypedActionResult.fail(player.getStackInHand(hand));
         }
@@ -88,36 +91,30 @@ public class HoudiniBlockItem extends BlockItem {
         NbtCompound nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, DEFAULT_NBT).copyNbt();
         PlacementMode mode = PlacementMode.valueOf(nbt.getString("houdini_placement_mode"));
 
+        ItemPlacementContext placementContext = new ItemPlacementContext(context);
+
         if (mode == PlacementMode.REPLACE_BLOCK) {
             BlockPos pos = context.getBlockPos();
             BlockState target = context.getWorld().getBlockState(pos);
 
             if (context.getWorld() instanceof ServerWorld world) {
-                List<ItemStack> stacks = Block.getDroppedStacks(target, world, pos, null);
-
-                for (ItemStack droppedStack : stacks) {
-                    ItemEntity itemEntity = new ItemEntity(
-                        world,
-                        (double) pos.getX() + 0.5D,
-                        (double) pos.getY() + 0.5D,
-                        (double) pos.getZ() + 0.5D,
-                        droppedStack
-                    );
-
-                    itemEntity.setToDefaultPickupDelay();
-
-                    world.spawnEntity(itemEntity);
-                }
+                Block.dropStacks(target, world, pos, null);
             }
 
-            ItemPlacementContext placementContext = new ItemPlacementContext(context);
             placementContext.placementPos = pos;
             placementContext.canReplaceExisting = true;
-
-            return this.place(placementContext);
         }
 
-        return super.useOnBlock(context);
+        this.place(placementContext);
+
+        if (mode != PlacementMode.PREVENT_ON_BREAK) {
+            PlayerEntity player = context.getPlayer();
+            if (player != null && !player.isCreative()) {
+                stack.decrement(1);
+            }
+        }
+
+        return ActionResult.SUCCESS;
     }
 
     public enum PlacementMode {
