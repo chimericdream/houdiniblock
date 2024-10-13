@@ -14,6 +14,8 @@ import net.minecraft.item.ItemUsageContext;
 import net.minecraft.item.tooltip.TooltipType;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -97,6 +99,12 @@ public class HoudiniBlockItem extends BlockItem {
             BlockPos pos = context.getBlockPos();
             BlockState target = context.getWorld().getBlockState(pos);
 
+            // This doesn't let you break unbreakable blocks
+            // @TODO: make this configurable?
+            if (target.getBlock().getHardness() == -1.0F) {
+                return ActionResult.FAIL;
+            }
+
             if (context.getWorld() instanceof ServerWorld world) {
                 Block.dropStacks(target, world, pos, null);
             }
@@ -107,10 +115,15 @@ public class HoudiniBlockItem extends BlockItem {
 
         this.place(placementContext);
 
+        World world = context.getWorld();
         if (mode != PlacementMode.PREVENT_ON_BREAK) {
             PlayerEntity player = context.getPlayer();
             if (player != null && !player.isCreative()) {
                 stack.decrement(1);
+            }
+
+            if (world.isClient()) {
+                world.playSound(context.getPlayer(), context.getBlockPos(), SoundEvents.BLOCK_STONE_PLACE, SoundCategory.BLOCKS, 1.0F, 1.0F);
             }
         }
 
