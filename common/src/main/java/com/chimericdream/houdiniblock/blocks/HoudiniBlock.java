@@ -92,7 +92,10 @@ public class HoudiniBlock extends Block implements Waterloggable {
             this.spawnBreakParticles(world, player, pos, state);
             this.spawnHoudiniBlockItem(world, player, pos);
 
-            world.setBlockState(pos, block.getDefaultState());
+            ItemPlacementContext placementContext = new ItemPlacementContext(player, hand, stack, hit);
+            placementContext.placementPos = pos;
+
+            world.setBlockState(pos, block.getPlacementState(placementContext));
 
             if (!player.isCreative()) {
                 stack.decrement(1);
