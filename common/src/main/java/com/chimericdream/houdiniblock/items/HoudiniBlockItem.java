@@ -1,6 +1,7 @@
 package com.chimericdream.houdiniblock.items;
 
-import com.chimericdream.lib.text.TextHelpers;
+//import com.chimericdream.lib.text.TextHelpers;
+
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.component.DataComponentTypes;
@@ -18,6 +19,7 @@ import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
 import net.minecraft.util.math.BlockPos;
@@ -51,7 +53,8 @@ public class HoudiniBlockItem extends BlockItem {
         NbtCompound nbt = stack.getOrDefault(DataComponentTypes.CUSTOM_DATA, DEFAULT_NBT).copyNbt();
         PlacementMode currentMode = PlacementMode.valueOf(nbt.getString("houdini_placement_mode"));
 
-        tooltip.add(TextHelpers.getTooltip(TOOLTIP_KEYS.get(currentMode)));
+        tooltip.add(Text.translatable(TOOLTIP_KEYS.get(currentMode)).formatted(Formatting.AQUA).formatted(Formatting.ITALIC));
+//        tooltip.add(TextHelpers.getTooltip(TOOLTIP_KEYS.get(currentMode)));
     }
 
     public TypedActionResult<ItemStack> use(World world, PlayerEntity player, Hand hand) {
