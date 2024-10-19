@@ -1,11 +1,9 @@
 package com.chimericdream.houdiniblock.neoforge.mixin;
 
-import com.chimericdream.houdiniblock.blocks.HoudiniBlock;
+import com.chimericdream.houdiniblock.mixinlogic.HoudiniWorldMixinLogic;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.block.AirBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.FluidBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.WorldChunk;
@@ -19,9 +17,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(World.class)
 abstract public class HoudiniWorldMixin {
-    @Shadow
-    abstract public BlockState getBlockState(BlockPos pos);
-
     @Shadow
     abstract public void scheduleBlockRerenderIfNeeded(BlockPos pos, BlockState oldState, BlockState newState);
 
@@ -42,28 +37,7 @@ abstract public class HoudiniWorldMixin {
         @Local(ordinal = 0) Block newBlock,
         @Local(ordinal = 1) BlockState previousState
     ) {
-        if ((
-            previousState.getBlock() instanceof HoudiniBlock
-                && !previousState.get(HoudiniBlock.PREVENT_ON_PLACE) // All states except prevent_on_place should prevent updates
-                && (newBlock instanceof AirBlock || newBlock instanceof FluidBlock))
-            || (
-            previousState.getBlock() instanceof HoudiniBlock
-                && previousState.get(HoudiniBlock.REPLACE_BLOCK))
-        ) {
-            this.scheduleBlockRerenderIfNeeded(pos, newState, previousState);
-            cir.setReturnValue(false);
-            return;
-        }
-
-        if ((
-            (previousState.getBlock() instanceof AirBlock || previousState.getBlock() instanceof FluidBlock)
-                && newBlock instanceof HoudiniBlock
-                // All states except prevent_on_break should prevent updates
-                && !newState.get(HoudiniBlock.PREVENT_ON_BREAK))
-            || (
-            newBlock instanceof HoudiniBlock
-                && newState.get(HoudiniBlock.REPLACE_BLOCK))
-        ) {
+        if (HoudiniWorldMixinLogic.preventBlockUpdates(previousState, newState, newBlock)) {
             this.scheduleBlockRerenderIfNeeded(pos, newState, previousState);
             cir.setReturnValue(false);
         }
@@ -85,27 +59,7 @@ abstract public class HoudiniWorldMixin {
     ) {
         Block newBlock = newState.getBlock();
 
-        if ((
-            previousState.getBlock() instanceof HoudiniBlock
-                && !previousState.get(HoudiniBlock.PREVENT_ON_PLACE) // All states except prevent_on_place should prevent updates
-                && (newBlock instanceof AirBlock || newBlock instanceof FluidBlock))
-            || (
-            previousState.getBlock() instanceof HoudiniBlock
-                && previousState.get(HoudiniBlock.REPLACE_BLOCK))
-        ) {
-            ci.cancel();
-            return;
-        }
-
-        if ((
-            (previousState.getBlock() instanceof AirBlock || previousState.getBlock() instanceof FluidBlock)
-                && newBlock instanceof HoudiniBlock
-                // All states except prevent_on_break should prevent updates
-                && !newState.get(HoudiniBlock.PREVENT_ON_BREAK))
-            || (
-            newBlock instanceof HoudiniBlock
-                && newState.get(HoudiniBlock.REPLACE_BLOCK))
-        ) {
+        if (HoudiniWorldMixinLogic.preventBlockUpdates(previousState, newState, newBlock)) {
             ci.cancel();
         }
     }

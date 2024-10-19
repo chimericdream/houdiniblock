@@ -1,11 +1,9 @@
 package com.chimericdream.houdiniblock.mixin;
 
-import com.chimericdream.houdiniblock.blocks.HoudiniBlock;
+import com.chimericdream.houdiniblock.mixinlogic.HoudiniWorldMixinLogic;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.block.AirBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.FluidBlock;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
@@ -33,27 +31,7 @@ abstract public class HoudiniWorldMixin {
         @Local(ordinal = 0) Block newBlock,
         @Local(ordinal = 1) BlockState previousState
     ) {
-        if ((
-            previousState.getBlock() instanceof HoudiniBlock
-                && !previousState.get(HoudiniBlock.PREVENT_ON_PLACE) // All states except prevent_on_place should prevent updates
-                && (newBlock instanceof AirBlock || newBlock instanceof FluidBlock))
-            || (
-            previousState.getBlock() instanceof HoudiniBlock
-                && previousState.get(HoudiniBlock.REPLACE_BLOCK))
-        ) {
-            cir.setReturnValue(false);
-            return;
-        }
-
-        if ((
-            (previousState.getBlock() instanceof AirBlock || previousState.getBlock() instanceof FluidBlock)
-                && newBlock instanceof HoudiniBlock
-                // All states except prevent_on_break should prevent updates
-                && !newState.get(HoudiniBlock.PREVENT_ON_BREAK))
-            || (
-            newBlock instanceof HoudiniBlock
-                && newState.get(HoudiniBlock.REPLACE_BLOCK))
-        ) {
+        if (HoudiniWorldMixinLogic.preventBlockUpdates(previousState, newState, newBlock)) {
             cir.setReturnValue(false);
         }
     }

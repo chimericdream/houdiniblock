@@ -1,5 +1,6 @@
 package com.chimericdream.houdiniblock.blocks;
 
+import com.chimericdream.houdiniblock.HoudiniBlockMod;
 import com.chimericdream.houdiniblock.items.HoudiniBlockItem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
@@ -86,22 +87,26 @@ public class HoudiniBlock extends Block implements Waterloggable {
     }
 
     private ItemActionResult replaceWithBlockInHand(ItemStack stack, BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-        if (stack.getItem() instanceof BlockItem blockItem) {
-            Block block = blockItem.getBlock();
+        try {
+            if (stack.getItem() instanceof BlockItem blockItem) {
+                Block block = blockItem.getBlock();
 
-            this.spawnBreakParticles(world, player, pos, state);
-            this.spawnHoudiniBlockItem(world, player, pos);
+                this.spawnBreakParticles(world, player, pos, state);
+                this.spawnHoudiniBlockItem(world, player, pos);
 
-            ItemPlacementContext placementContext = new ItemPlacementContext(player, hand, stack, hit);
-            placementContext.placementPos = pos;
+                ItemPlacementContext placementContext = new ItemPlacementContext(player, hand, stack, hit);
+                placementContext.placementPos = pos;
 
-            world.setBlockState(pos, block.getPlacementState(placementContext));
+                world.setBlockState(pos, block.getPlacementState(placementContext));
 
-            if (!player.isCreative()) {
-                stack.decrement(1);
+                if (!player.isCreative()) {
+                    stack.decrement(1);
+                }
+
+                return ItemActionResult.SUCCESS;
             }
-
-            return ItemActionResult.SUCCESS;
+        } catch (RuntimeException e) {
+            HoudiniBlockMod.LOGGER.error("Error in HoudiniBlock$replaceWithBlockInHand", e);
         }
 
         return ItemActionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
